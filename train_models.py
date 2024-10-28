@@ -1,50 +1,32 @@
-# train_models.py
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.svm import SVC
-from sklearn.model_selection import RandomizedSearchCV, train_test_split
+from sklearn.metrics import accuracy_score
 import joblib
 
-def train_rf(X_train, y_train):
-    rf = RandomForestClassifier()
-    param_grid = {
-        'n_estimators': [50, 100, 200],
-        'max_depth': [None, 10, 20],
-        'min_samples_split': [2, 5, 10]
-    }
-    search = RandomizedSearchCV(rf, param_grid, n_iter=10, cv=3, n_jobs=-1)
-    search.fit(X_train, y_train)
-    best_rf = search.best_estimator_
-    joblib.dump(best_rf, 'rf_model.pkl')
-    return best_rf
-
-def train_gb(X_train, y_train):
-    gb = GradientBoostingClassifier()
-    param_grid = {
-        'n_estimators': [50, 100],
-        'max_depth': [3, 5],
-        'learning_rate': [0.01, 0.1]
-    }
-    search = RandomizedSearchCV(gb, param_grid, n_iter=10, cv=3, n_jobs=-1)
-    search.fit(X_train, y_train)
-    best_gb = search.best_estimator_
-    joblib.dump(best_gb, 'gb_model.pkl')
-    return best_gb
-
-def train_svm(X_train, y_train):
-    svm = SVC(probability=True)
-    param_grid = {'C': [0.1, 1, 10], 'kernel': ['linear', 'rbf']}
-    search = RandomizedSearchCV(svm, param_grid, n_iter=5, cv=3, n_jobs=-1)
-    search.fit(X_train, y_train)
-    best_svm = search.best_estimator_
-    joblib.dump(best_svm, 'svm_model.pkl')
-    return best_svm
-
-data = pd.read_csv('processed_data.csv')
+# Load processed data
+data = pd.read_csv('preprocessed_data.csv')
 X = data.drop('Overall Quality', axis=1)
 y = data['Overall Quality']
+
+# Split data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-best_rf = train_rf(X_train, y_train)
-best_gb = train_gb(X_train, y_train)
-best_svm = train_svm(X_train, y_train)
+# Initialize models
+models = {
+    'GradientBoosting': GradientBoostingClassifier(),
+    'SVM': SVC(probability=True)
+}
+
+# Train and save models
+for model_name, model in models.items():
+    model.fit(X_train, y_train)
+    joblib.dump(model, f'{model_name.lower()}_model.pkl')
+    print(f"{model_name} trained and saved.")
+
+# Check individual model accuracy
+for model_name, model in models.items():
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    print(f"{model_name} Accuracy: {accuracy:.4f}")
